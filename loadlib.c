@@ -215,17 +215,16 @@ static void unloadlib(lua_State *L) {
     lua_settag(L, gettag(L, UNLOADEDTAG));
 }
 
-int LUA_LIBRARY loadlib_open(lua_State *L) {
-    static struct luaL_reg funcs[] = {
-            {"loadlib",     loadlib},
-            {"unloadlib",   unloadlib},
-            {"callfromlib", callfromlib}
-    };
-    int libtag, unloadedtag;
-    int i;
-    libtag = lua_newtag(L);
-    unloadedtag = lua_newtag(L);
-    for (i = 0; i < sizeof(funcs) / sizeof(funcs[0]); i++) {
+static struct luaL_reg funcs[] = {
+        {"loadlibex",     loadlib},
+        {"unloadlibex",   unloadlib},
+        {"callfromlibex", callfromlib}
+};
+
+int LUA_LIBRARY loadlibex_open(lua_State *L) {
+    int libtag = lua_newtag(L);
+    int unloadedtag = lua_newtag(L);
+    for (int i = 0; i < sizeof(funcs) / sizeof(funcs[0]); i++) {
         lua_pushnumber(L, libtag);
         lua_pushnumber(L, unloadedtag);
         lua_pushcclosure(L, funcs[i].func, 2);
