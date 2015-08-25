@@ -1,0 +1,4 @@
+LIBRARY   loadlib
+DESCRIPTION "Library to load others dinamic libs through lua"
+EXPORTS
+   loadlib_open
