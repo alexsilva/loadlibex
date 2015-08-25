@@ -215,7 +215,7 @@ static void unloadlib(lua_State *L) {
     lua_settag(L, gettag(L, UNLOADEDTAG));
 }
 
-void loadlib_open(lua_State *L) {
+int LUA_LIBRARY loadlib_open(lua_State *L) {
     static struct luaL_reg funcs[] = {
             {"loadlib",     loadlib},
             {"unloadlib",   unloadlib},
@@ -233,5 +233,6 @@ void loadlib_open(lua_State *L) {
     }
     lua_pushstring(L, LOADLIB_VERSION);
     lua_setglobal(L, "LOADLIB_VERSION");
+    return 0;
 }
   
