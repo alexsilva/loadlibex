@@ -231,11 +231,14 @@ static int preload_libraries(const char *filedir, const char *filename) {
         char *path = NULL;
         char *name = NULL;
         libtype lib;
+        int fmtsize = strlen(MAP_FORMAT);
         while (fgets(line, sizeof(line), file)) {
             name = trim(line);
             if (name[0] == '#') // comment
                 continue;
-            path = join(filedir, name);
+            char fname[strlen(name) + fmtsize + 1];
+            sprintf(fname, MAP_FORMAT, "", name);
+            path = join(filedir, fname);
             lib = loadlibrary(path);
             free(path);
             if (!lib) { // error loading dep lib
