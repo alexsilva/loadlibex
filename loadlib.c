@@ -80,7 +80,7 @@ static char* dll_error( char* altmsg )
   }
 }
 
-#elif defined(DLFCN)
+#elif defined(__linux__)
 
 #include <dlfcn.h>
 #ifndef RTLD_GLOBAL
