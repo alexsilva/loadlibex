@@ -11,7 +11,7 @@
 #define LUA_LIBRARY __attribute__((visibility("default")))
 #endif
 
-int LUA_LIBRARY loadlib_open(lua_State *L);
+int LUA_LIBRARY loadlibs_open(lua_State *L);
 
 #endif
 
