@@ -270,12 +270,13 @@ static void loadlib(lua_State *L) {
     char *filename;
     size_t slen = strlen(libname);
     char *filedir = (char *) malloc(slen + 1);
+    filedir[0] = '\0';
 
     if (strpbrk(libname, ".:/\\")) {
         path = libname;
 
         strncpy(filedir, path, slen);
-        filedir[slen + 1] = '\0';
+        filedir[slen] = '\0';
 
         filename = basename(filedir);
         filename = remove_ext(filename, '.', PATH_SEP);
