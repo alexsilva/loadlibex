@@ -206,10 +206,8 @@ static char *trim(char *s) {
 }
 
 static char *join(const char *filedir, const char *filename) {
-    size_t buffsize = strlen(filedir) + strlen(filename) + 2;
-    char *fullpath = (char *) malloc(buffsize);
-
-    fullpath[buffsize] = '\0';
+    char *fullpath = (char *) malloc(strlen(filedir) + strlen(filename) + 2);
+    fullpath[0] = '\0';
 
     strcat(fullpath, filedir);
     strcat(fullpath, "/");
