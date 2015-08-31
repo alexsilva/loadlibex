@@ -222,10 +222,15 @@ static char *get_filepath(const char *filedir, const char *filename) {
     return join(filedir, fname);
 }
 
-static int preload_libraries(const char *filedir, const char *filename) {
+static struct loadlib_st preload_libraries(lua_State *L, const char *filedir, const char *filename) {
     char *fullpath = get_filepath(filedir, filename); // free!
+
     FILE *file = fopen(fullpath, "r"); // file open
-    int reval = 0;
+    struct loadlib_st load_st;
+
+    load_st.code = LOADLIB_NOERROR;
+    load_st.msg = LOADLIB_OK;
+
     if (file) {
         char line[512];
         char *path = NULL;
@@ -240,18 +245,35 @@ static int preload_libraries(const char *filedir, const char *filename) {
             sprintf(fname, MAP_FORMAT, "", name);
             path = join(filedir, fname);
             lib = loadlibrary(path);
-            free(path);
             if (!lib) { // error loading dep lib
-                reval = -1;
-                break;
+                char *fmt = "loading \"%s\"";
+                char *msg = (char *) malloc(strlen(fmt) + strlen(path) + 1);
+
+                if (!msg) lua_error(L, "not enough memory."); // fatal
+                sprintf(msg, fmt, path);
+
+                load_st.msg = msg;
+                load_st.code = LOADLIB_ERROR;
+
+                free(path);
+                return load_st;
             }
+            free(path);
         }
         fclose(file);
     } else {
-        reval = -1;
+        load_st.code = LOADLIB_ERROR;
+        char *fmt = "%s \"%s\"";
+        char *error_msg = strerror(errno);
+
+        char *msg = (char *) malloc(strlen(error_msg) + strlen(fmt) + strlen(fullpath) + 1);
+        if (!msg) lua_error(L, "not enough memory."); // fatal
+
+        sprintf(msg, fmt, error_msg, fullpath);
+        load_st.msg = msg;
     }
     free(fullpath);
-    return reval;
+    return load_st;
 }
 
 static int gettag(lua_State *L, int i) {
@@ -311,7 +333,10 @@ static void loadlib(lua_State *L) {
     }
 
     // required libraries from this.
-    preload_libraries(filedir, filename);
+    struct loadlib_st load_st = preload_libraries(L, filedir, filename);
+
+    if (load_st.code == LOADLIB_ERROR) // fatal error
+        lua_error(L, load_st.msg);
 
     // load main lib
     lib = loadlibrary(path);
