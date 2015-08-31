@@ -83,6 +83,8 @@ static char* dll_error( char* altmsg )
 #elif defined(__linux__)
 
 #include <dlfcn.h>
+#include <errno.h>
+
 #ifndef RTLD_GLOBAL
 #define RTLD_GLOBAL 0
 #endif
