@@ -304,6 +304,8 @@ static void loadlib(lua_State *L) {
         slen = strlen(dir);
 
         filedir = realloc(filedir, slen + 1);
+        if (!filedir) lua_error(L, "not enough memory.");
+
         strncpy(filedir, dir, slen);
         filedir[slen + 1] = '\0';
     }
