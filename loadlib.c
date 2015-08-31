@@ -25,7 +25,7 @@ char *loadlib_c = "$Id: loadlib.c,v 1.10 1999/03/23 01:11:12 rborges Exp $";
 #if defined(_WIN32)
 #define MAP_FORMAT "%s%s.dll"
 #else
-#define MAP_FORMAT "%slib%s.so"
+#define MAP_FORMAT "%s%s.so"
 #endif
 
 
