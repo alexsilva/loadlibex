@@ -157,7 +157,9 @@ typedef lua_CFunction functype;
 #define FIRSTARG    3
 
 #define DEPS_FLN_FORMAT "%s.deps"
-#define PATH_SEP        '/'
+#define LINUX_PATH_SEP   '/'
+#define WIN_PATH_SEP     '\\'
+
 
 char *remove_ext(char *src, char dot, char sep) {
     char *retstr, *lastdot, *lastsep;
@@ -212,7 +214,10 @@ static char *join(const char *filedir, const char *filename) {
     fullpath[0] = '\0';
 
     strcat(fullpath, filedir);
-    strcat(fullpath, "/");
+    if (filedir[strlen(filedir) - 1] != LINUX_PATH_SEP &&
+        filedir[strlen(filedir) - 1] != WIN_PATH_SEP) {
+        strcat(fullpath, "/");
+    }
     strcat(fullpath, filename);
 
     return fullpath;
@@ -306,7 +311,7 @@ static void loadlib(lua_State *L) {
         filedir[slen] = '\0';
 
         filename = basename(filedir);
-        filename = remove_ext(filename, '.', PATH_SEP);
+        filename = remove_ext(filename, '.', LINUX_PATH_SEP);
 
         filedir = dirname(filedir);
     }
