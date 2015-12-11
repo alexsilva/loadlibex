@@ -226,22 +226,16 @@ static char *get_filepath(char *filedir, const char *filename) {
     return join(filedir, fname);
 }
 
-static struct loadlib_st preload_libraries(lua_State *L, char *filedir, const char *filename) {
+static void preload_libraries(lua_State *L, char *filedir, const char *filename) {
     char *fullpath = get_filepath(filedir, filename); // free!
-
-    FILE *file = fopen(fullpath, "r"); // file open
-    struct loadlib_st load_st;
-
-    load_st.code = LOADLIB_NOERROR;
-    load_st.msg = LOADLIB_OK;
-
-    if (file) {
+    FILE *depfile = fopen(fullpath, "r"); // depfile open
+    if (depfile) {
         char line[512];
         char *path = NULL;
         char *name = NULL;
         libtype lib;
         int fmtsize = strlen(MAP_FORMAT);
-        while (fgets(line, sizeof(line), file)) {
+        while (fgets(line, sizeof(line), depfile)) {
             name = trim(line);
             if (name[0] == '#') // comment
                 continue;
@@ -250,34 +244,25 @@ static struct loadlib_st preload_libraries(lua_State *L, char *filedir, const ch
             path = join(filedir, fname);
             lib = loadlibrary(path);
             if (!lib) { // error loading dep lib
-                char *fmt = "loading \"%s\"";
-                char *msg = (char *) malloc(strlen(fmt) + strlen(path) + 1);
-
-                if (!msg) lua_error(L, "not enough memory."); // fatal
-                sprintf(msg, fmt, path);
-
-                load_st.msg = msg;
-                load_st.code = LOADLIB_ERROR;
-
+                char *format = "loading dep (%s)";
+                char buff[strlen(format) + strlen(path) + 1];
+                sprintf(buff, format, path);
+                free(fullpath);
                 free(path);
-                return load_st;
+                lua_error(L, buff); // fatal
             }
             free(path);
         }
-        fclose(file);
+        fclose(depfile);
     } else {
-        load_st.code = LOADLIB_ERROR;
-        char *fmt = "%s \"%s\"";
-        char *error_msg = strerror(errno);
-
-        char *msg = (char *) malloc(strlen(error_msg) + strlen(fmt) + strlen(fullpath) + 1);
-        if (!msg) lua_error(L, "not enough memory."); // fatal
-
-        sprintf(msg, fmt, error_msg, fullpath);
-        load_st.msg = msg;
+        char *format = "%s (%s)";
+        char *error = strerror(errno);
+        char buff[strlen(format) + strlen(error) + strlen(fullpath) + 1];
+        sprintf(buff, format, error, fullpath);
+        free(fullpath);
+        lua_error(L, &buff[0]); // fatal
     }
     free(fullpath);
-    return load_st;
 }
 
 static int gettag(lua_State *L, int i) {
@@ -295,58 +280,60 @@ static void loadlib(lua_State *L) {
     char *libname = luaL_check_string(L, FIRSTARG);
     char *path;
     libtype lib;
-
     char *filename;
     size_t slen = strlen(libname);
     char *filedir = (char *) malloc(slen + 1);
-    filedir[0] = '\0';
-
+    if (!filedir) {
+        lua_error(L, "not enough memory.");
+    } else {
+        filedir[0] = '\0';
+    }
     if (strpbrk(libname, ".:/\\")) {
         path = libname;
 
         strncpy(filedir, path, slen);
         filedir[slen] = '\0';
 
-        filename = basename(filedir);
-        filename = remove_ext(filename, '.', LINUX_PATH_SEP);
-
+        char *_filename = basename(filedir);
+        filename = remove_ext(_filename, '.', LINUX_PATH_SEP);
         filedir = dirname(filedir);
     }
     else {
         lua_Object param = lua_getparam(L, FIRSTARG + 1);
-        char *dir = "";
-
+        char *dir;
         if (param != LUA_NOOBJECT) {
             dir = luaL_check_string(L, FIRSTARG + 1);
+        } else {
+            dir = "";
         }
         path = (char *) malloc(sizeof(char) * (strlen(dir) +
                                                strlen(libname) +
                                                strlen(MAP_FORMAT) + 1));
-        if (!path) lua_error(L, "not enough memory.");
-
+        if (!path) {
+            lua_error(L, "not enough memory.");
+        } else {
+            path[0] = '\0';
+        }
         sprintf(path, MAP_FORMAT, dir, libname);
-
         filename = libname;
         slen = strlen(dir) + 1;
-
         filedir = realloc(filedir, slen);
-        if (!filedir) lua_error(L, "not enough memory.");
-        strncpy(filedir, dir, slen);
+        if (!filedir) {
+            lua_error(L, "not enough memory.");
+        } else {
+            strncpy(filedir, dir, slen);
+        }
     }
-
     // required libraries from this.
-    struct loadlib_st load_st = preload_libraries(L, filedir, filename);
-
-    if (load_st.code == LOADLIB_ERROR) // fatal error
-        lua_error(L, load_st.msg);
+    preload_libraries(L, filedir, filename);
 
     // load main lib
     lib = loadlibrary(path);
 
     free(filedir);
-
-    if (path != libname) {
+    if (libname != path) {
         free(path);
+    } else {
         free(filename);
     }
     if (!lib) {
