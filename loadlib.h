@@ -15,11 +15,6 @@
 #define LOADLIB_NOERROR 0
 #define LOADLIB_OK      "OK"
 
-struct loadlib_st {
-    int code;
-    char *msg;
-};
-
 int LUA_LIBRARY loadlibs_open(lua_State *L);
 
 #endif
