@@ -11,4 +11,8 @@ set(SOURCE_FILES
 
 add_library(loadlibs SHARED ${SOURCE_FILES})
 target_link_libraries(loadlibs ${LUA_LIBRARY_PATH})
-set_target_properties(loadlibs PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+
+set_target_properties(loadlibs PROPERTIES
+        COMPILE_FLAGS "-m32"
+        LINK_FLAGS "-m32"
+        PREFIX "")
