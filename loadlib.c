@@ -349,7 +349,7 @@ static void callfromlib(lua_State *L) {
     char *funcname = luaL_check_string(L, FIRSTARG + 1);
     functype fn = loadfunc(lh, funcname);
     if (fn) {
-        fn(L);
+        ((lua_CFunction) fn)(L);
     }
     else {
         lua_error(L, funcerror());
