@@ -9,7 +9,7 @@ link_directories(${LUA_LIBRARIES})
 
 set(SOURCE_FILES loadlib.c loadlib.h)
 
-add_library(loadlibs SHARED ${SOURCE_FILES})
+add_library(loadlibs MODULE ${SOURCE_FILES})
 
 if (WIN32)
     set_target_properties(loadlibs PROPERTIES PREFIX "")
