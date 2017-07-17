@@ -179,7 +179,7 @@ static char *get_filepath(char *filedir, const char *filename) {
     return path_join(filedir, fname);
 }
 
-static void preload_libraries(lua_State *L, char *filedir, const char *filename) {
+static void load_libraries(lua_State *L, char *filedir, const char *filename) {
     char *fullpath = get_filepath(filedir, filename); // free!
     FILE *depfile = fopen(fullpath, "r"); // depfile open
     if (depfile) {
@@ -290,7 +290,7 @@ static void loadlib(lua_State *L) {
         filedir = strncpy(filedir, dir, slen);
     }
     // required libraries from this.
-    preload_libraries(L, filedir, filename);
+    load_libraries(L, filedir, filename);
 
     // load main lib
     lib = loadlibrary(path);
