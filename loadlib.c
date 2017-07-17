@@ -256,8 +256,8 @@ static void loadlib(lua_State *L) {
     char *path;
     libtype lib;
     char *filename;
-    size_t slen = strlen(libname);
-    char *filedir = (char *) malloc(slen + 1);
+    size_t slen = strlen(libname) + 1;
+    char *filedir = (char *) malloc(slen);
     if (!filedir) {
         lua_error(L, "not enough memory.");
         return; // disable warning
@@ -267,8 +267,6 @@ static void loadlib(lua_State *L) {
     if (strpbrk(libname, ".:/\\")) {
         path = libname;
         strncpy(filedir, path, slen);
-        filedir[slen] = '\0';
-
         char *fname = basename(filedir);
         filename = substr(fname, 0, strlen(fname) - strlen(extname(fname)));
         if (!filename) lua_error(L, "not enough memory.");
@@ -286,7 +284,10 @@ static void loadlib(lua_State *L) {
         path = path_join(dir, fname);
         if (!path) lua_error(L, "not enough memory.");
         filename = libname;
-        filedir = dir;
+        slen = strlen(dir) + 1;
+        filedir = realloc(filedir, slen);
+        if (!filedir) lua_error(L, "not enough memory.");
+        filedir = strncpy(filedir, dir, slen);
     }
     // required libraries from this.
     preload_libraries(L, filedir, filename);
@@ -294,10 +295,11 @@ static void loadlib(lua_State *L) {
     // load main lib
     lib = loadlibrary(path);
 
+    free(filedir);
+
     if (libname != path) {
         free(path);
     } else {
-        free(filedir);
         free(filename);
     }
     if (!lib) {
