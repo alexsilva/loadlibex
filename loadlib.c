@@ -9,9 +9,7 @@ char *loadlib_c = "$Id: loadlib.c,v 1.10 1999/03/23 01:11:12 rborges Exp $";
 #include <stdlib.h>
 #include <string.h>
 #include <lua.h>
-#include <lualib.h>
 #include <lauxlib.h>
-#include <ctype.h>
 #include <libgen.h>
 
 #include "loadlib.h"
