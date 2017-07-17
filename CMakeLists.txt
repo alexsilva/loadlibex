@@ -4,10 +4,21 @@ project(loadlibs)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 include_directories(${LUA_INCLUDE_DIR})
+include_directories(deps)
 
 link_directories(${LUA_LIBRARIES})
 
-set(SOURCE_FILES loadlib.c loadlib.h)
+set(SOURCE_FILES
+        deps/path-join/path-join.c
+        deps/str-ends-with/str-ends-with.c
+        deps/str-starts-with/str-starts-with.c
+        deps/extname/extname.c
+        deps/substr/substr.c
+        deps/strdup/strdup.c
+        deps/trim/trim.c
+        loadlib.c
+        loadlib.h
+        )
 
 add_library(loadlibs MODULE ${SOURCE_FILES})
 
