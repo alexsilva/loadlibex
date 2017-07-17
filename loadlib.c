@@ -34,50 +34,43 @@ char *loadlib_c = "$Id: loadlib.c,v 1.10 1999/03/23 01:11:12 rborges Exp $";
 #include <windows.h>
 
 typedef HINSTANCE libtype;
-typedef FARPROC   functype;
-#define loadfunc(lib,name) GetProcAddress( lib, name )
+typedef FARPROC functype;
+#define loadfunc(lib, name) GetProcAddress( lib, name )
 #define unloadlibrary(lib) FreeLibrary( lib )
 #define liberror()         dll_error("Could not load library.")
 #define funcerror()        dll_error("Could not load function.")
- 
-static libtype loadlibrary( char* path )
-{
-  libtype libhandle = LoadLibrary( path );
-  if (!libhandle)
-  {
-    int maxtries = 10;
-    do 
-    {
-      maxtries--;
-      Sleep( 2 );
-      libhandle = LoadLibrary( path );
-    } while( !libhandle &&
-             maxtries>0 &&
-             GetLastError()==ERROR_SHARING_VIOLATION );
-  }
-  return libhandle;
+
+static libtype loadlibrary(char *path) {
+    libtype libhandle = LoadLibrary(path);
+    if (!libhandle) {
+        int maxtries = 10;
+        do {
+            maxtries--;
+            Sleep(2);
+            libhandle = LoadLibrary(path);
+        } while (!libhandle &&
+                 maxtries > 0 &&
+                 GetLastError() == ERROR_SHARING_VIOLATION);
+    }
+    return libhandle;
 }
- 
+
 #define BUFFER_SIZE 100
- 
-static char* dll_error( char* altmsg )
-{
-  static char buffer[BUFFER_SIZE+1];
-  if ( FormatMessage( FORMAT_MESSAGE_IGNORE_INSERTS |
+
+static char *dll_error(char *altmsg) {
+    static char buffer[BUFFER_SIZE + 1];
+    if (FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS |
                       FORMAT_MESSAGE_FROM_SYSTEM,
                       0, /* source */
                       GetLastError(),
                       0, /* langid */
                       buffer,
                       BUFFER_SIZE,
-                      0 /* arguments */ ) )
-  {
-    return buffer;
-  }
-  else
-  {
-    return altmsg;
-  }
+                      0 /* arguments */ )) {
+        return buffer;
+    } else {
+        return altmsg;
+    }
 }
 
 #elif defined(__linux__)
@@ -297,8 +290,7 @@ static void loadlib(lua_State *L) {
         char *_filename = basename(filedir);
         filename = remove_ext(_filename, '.', LINUX_PATH_SEP);
         filedir = dirname(filedir);
-    }
-    else {
+    } else {
         lua_Object param = lua_getparam(L, FIRSTARG + 1);
         char *dir;
         if (param != LUA_NOOBJECT) {
@@ -350,8 +342,7 @@ static void callfromlib(lua_State *L) {
     functype fn = loadfunc(lh, funcname);
     if (fn) {
         ((lua_CFunction) fn)(L);
-    }
-    else {
+    } else {
         lua_error(L, funcerror());
     }
 }
