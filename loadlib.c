@@ -1,5 +1,10 @@
 char *loadlib_c = "$Id: loadlib.c,v 1.10 1999/03/23 01:11:12 rborges Exp $";
 
+#include "deps/path-join/path-join.h"
+#include "deps/trim/trim.h"
+#include "deps/substr/substr.h"
+#include "deps/extname/extname.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,9 +28,9 @@ char *loadlib_c = "$Id: loadlib.c,v 1.10 1999/03/23 01:11:12 rborges Exp $";
 */
 
 #if defined(_WIN32)
-#define MAP_FORMAT "%s%s.dll"
+#define MAP_FORMAT "%s.dll"
 #else
-#define MAP_FORMAT "%s%s.so"
+#define MAP_FORMAT "%s.so"
 #endif
 
 
@@ -150,73 +155,11 @@ typedef lua_CFunction functype;
 #define FIRSTARG    3
 
 #define DEPS_FLN_FORMAT "%s.deps"
-#define LINUX_PATH_SEP   '/'
-#define WIN_PATH_SEP     '\\'
-
-
-char *remove_ext(char *src, char dot, char sep) {
-    char *retstr, *lastdot, *lastsep;
-
-    // Error checks and allocate string.
-    if (src == NULL)
-        return NULL;
-
-    if ((retstr = malloc(strlen(src) + 1)) == NULL)
-        return NULL;
-
-    // Make a copy and find the relevant characters.
-    strcpy(retstr, src);
-    lastdot = strrchr(retstr, dot);
-    lastsep = (sep == 0) ? NULL : strrchr(retstr, sep);
-
-    // If it has an extension     separator.
-    if (lastdot != NULL) {
-        // and it's before the extenstion separator.
-        if (lastsep != NULL) {
-            if (lastsep < lastdot) {
-                // then remove it.
-                *lastdot = '\0';
-            }
-        } else {
-            // Has extension separator with no path separator.
-            *lastdot = '\0';
-        }
-    }
-    // Return the modified string.
-    return retstr;
-}
-
-static char *ltrim(char *s) {
-    while (isspace(*s)) s++;
-    return s;
-}
-
-static char *rtrim(char *s) {
-    char *back = s + strlen(s);
-    while (isspace(*--back));
-    *(back + 1) = '\0';
-    return s;
-}
-
-static char *trim(char *s) {
-    return rtrim(ltrim(s));
-}
-
-static char *join(char *filedir, const char *filename) {
-    char *fullpath = (char *) malloc(strlen(filedir) + strlen(filename) + 2);
-    char *sep = "";
-    if (filedir[strlen(filedir) - 1] != LINUX_PATH_SEP &&
-        filedir[strlen(filedir) - 1] != WIN_PATH_SEP) {
-        sep = "/";
-    }
-    sprintf(fullpath, "%s%s%s", filedir, sep, filename);
-    return fullpath;
-}
 
 static char *get_filepath(char *filedir, const char *filename) {
     char fname[strlen(filename) + strlen(DEPS_FLN_FORMAT) + 1];
     sprintf(fname, DEPS_FLN_FORMAT, filename);
-    return join(filedir, fname);
+    return path_join(filedir, fname);
 }
 
 static void preload_libraries(lua_State *L, char *filedir, const char *filename) {
@@ -233,8 +176,8 @@ static void preload_libraries(lua_State *L, char *filedir, const char *filename)
             if (name[0] == '#') // comment
                 continue;
             char fname[strlen(name) + fmtsize + 1];
-            sprintf(fname, MAP_FORMAT, "", name);
-            path = join(filedir, fname);
+            sprintf(fname, MAP_FORMAT, name);
+            path = path_join(filedir, fname);
             lib = loadlibrary(path);
             if (!lib) { // error loading dep lib
                 char *format = "loading dep (%s)";
@@ -278,17 +221,18 @@ static void loadlib(lua_State *L) {
     char *filedir = (char *) malloc(slen + 1);
     if (!filedir) {
         lua_error(L, "not enough memory.");
+        return; // disable warning
     } else {
         filedir[0] = '\0';
     }
     if (strpbrk(libname, ".:/\\")) {
         path = libname;
-
         strncpy(filedir, path, slen);
         filedir[slen] = '\0';
 
-        char *_filename = basename(filedir);
-        filename = remove_ext(_filename, '.', LINUX_PATH_SEP);
+        char *fname = basename(filedir);
+        filename = substr(fname, 0, strlen(fname) - strlen(extname(fname)));
+        if (!filename) lua_error(L, "not enough memory.");
         filedir = dirname(filedir);
     } else {
         lua_Object param = lua_getparam(L, FIRSTARG + 1);
@@ -298,23 +242,12 @@ static void loadlib(lua_State *L) {
         } else {
             dir = "";
         }
-        path = (char *) malloc(sizeof(char) * (strlen(dir) +
-                                               strlen(libname) +
-                                               strlen(MAP_FORMAT) + 1));
-        if (!path) {
-            lua_error(L, "not enough memory.");
-        } else {
-            path[0] = '\0';
-        }
-        sprintf(path, MAP_FORMAT, dir, libname);
+        char fname[strlen(MAP_FORMAT) + strlen(libname) + 1];
+        sprintf(fname, MAP_FORMAT, libname);
+        path = path_join(dir, fname);
+        if (!path) lua_error(L, "not enough memory.");
         filename = libname;
-        slen = strlen(dir) + 1;
-        filedir = realloc(filedir, slen);
-        if (!filedir) {
-            lua_error(L, "not enough memory.");
-        } else {
-            strncpy(filedir, dir, slen);
-        }
+        filedir = dir;
     }
     // required libraries from this.
     preload_libraries(L, filedir, filename);
@@ -322,10 +255,10 @@ static void loadlib(lua_State *L) {
     // load main lib
     lib = loadlibrary(path);
 
-    free(filedir);
     if (libname != path) {
         free(path);
     } else {
+        free(filedir);
         free(filename);
     }
     if (!lib) {
