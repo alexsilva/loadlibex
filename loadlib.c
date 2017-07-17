@@ -37,6 +37,23 @@ char *loadlib_c = "$Id: loadlib.c,v 1.10 1999/03/23 01:11:12 rborges Exp $";
 #if defined(_WIN32)
 
 #include <windows.h>
+#include <tchar.h>
+
+/* Function makes absolute relative paths */
+static char* _realpath(char *filepath) {
+    DWORD retval;
+    DWORD bufferlen = MAX_PATH + 1;
+    TCHAR buffer[bufferlen];
+    retval = GetFullPathName(filepath, bufferlen, buffer, NULL);
+    if (retval > 0) {
+        size_t size = _tcslen(buffer) + 1;
+        char *buffstr = malloc(size);
+        if (!buffer) return NULL;
+        strncpy(buffstr, buffer, size);
+        return buffstr;
+    }
+    return NULL;
+}
 
 typedef HINSTANCE libtype;
 typedef FARPROC functype;
@@ -167,7 +184,7 @@ static void preload_libraries(lua_State *L, char *filedir, const char *filename)
     FILE *depfile = fopen(fullpath, "r"); // depfile open
     if (depfile) {
         char line[512];
-        char *path = NULL;
+        char *rpath = NULL;
         char *name = NULL;
         libtype lib;
         int fmtsize = strlen(MAP_FORMAT);
@@ -175,19 +192,41 @@ static void preload_libraries(lua_State *L, char *filedir, const char *filename)
             name = trim(line);
             if (name[0] == '#') // comment
                 continue;
-            char fname[strlen(name) + fmtsize + 1];
-            sprintf(fname, MAP_FORMAT, name);
-            path = path_join(filedir, fname);
+            // relative path
+            char lib_relpath[strlen(name) + fmtsize + 1];
+            sprintf(lib_relpath, MAP_FORMAT, name);
+            rpath = path_join(filedir, lib_relpath); // free
+            char *path = _realpath(rpath);
+            free(rpath);
+            if (!path) {
+#ifdef WIN32
+                DWORD nerror = GetLastError();
+                int length = 0;
+                DWORD num = nerror;
+                // size char of dword
+                while(num > 0) {
+                    num /= 10;
+                    length++;
+                }
+                char *format = "real system path (%lu)";
+                char buff[strlen(format) + length + 1];
+                sprintf(buff, format, nerror);
+                lua_error(L, buff);
+#else
+                lua_error(L, "not enough memory.");
+#endif
+            }
             lib = loadlibrary(path);
             if (!lib) { // error loading dep lib
-                char *format = "loading dep (%s)";
+                char *format = "load required library (%s)";
                 char buff[strlen(format) + strlen(path) + 1];
                 sprintf(buff, format, path);
                 free(fullpath);
                 free(path);
                 lua_error(L, buff); // fatal
+            } else {
+                free(path);
             }
-            free(path);
         }
         fclose(depfile);
     } else {
