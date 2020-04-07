@@ -26,5 +26,3 @@ if (WIN32)
     set_target_properties(loadlibs PROPERTIES PREFIX "")
     target_link_libraries(loadlibs lua32ng lualib32ng)
 endif ()
-
-set_target_properties(loadlibs PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
